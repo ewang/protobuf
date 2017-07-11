@@ -199,9 +199,11 @@ class _Printer(object):
       if self.including_default_value_fields:
         message_descriptor = message.DESCRIPTOR
         for field in message_descriptor.fields:
-          # Singular message fields and oneof fields will not be affected.
+          # Singular message fields (except WKT wrapper types)
+          # and oneof fields will not be affected.
           if ((field.label != descriptor.FieldDescriptor.LABEL_REPEATED and
-               field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_MESSAGE) or
+               field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_MESSAGE and
+               not _IsWrapperMessage(field.message_type)) or
               field.containing_oneof):
             continue
           if self.preserving_proto_field_name:
@@ -211,7 +213,11 @@ class _Printer(object):
           if name in js:
             # Skip the field which has been serailized already.
             continue
-          if _IsMapEntry(field):
+          if (field.label != descriptor.FieldDescriptor.LABEL_REPEATED and
+              field.cpp_type == descriptor.FieldDescriptor.CPPTYPE_MESSAGE and
+              _IsWrapperMessage(field.message_type)):
+            js[name] = None
+          elif _IsMapEntry(field):
             js[name] = {}
           elif field.label == descriptor.FieldDescriptor.LABEL_REPEATED:
             js[name] = []
